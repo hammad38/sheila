@@ -1,0 +1,19 @@
+# ignore every directory in root
+*/
+
+# ignore files from root directory
+package-lock.json
+
+# do not ignore models, validation, routes/api/
+###
+!models/
+###
+!validation/
+###
+!/routes
+/routes/*
+!/routes/api
+
+# ignore config files
+!/config
+/config/keys.js
