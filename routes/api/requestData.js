@@ -1,12 +1,15 @@
-var request = require('request');
-var keys = require('../../config/keys');
-var token;
-var groupName = 'lucid';
+// packages imports
+const request = require('request');
+
+// variables imports
+const keys = require('../../config/keys');
+
+let token;
+let groupName = 'lucid';
 
 
 function getProjectsData (groupRequested,loginUser, callback) {
-    token = loginUser.accessToken;
-    console.log('Requested for Group data: ',groupRequested);
+    token = loginUser.access_token;
     var groupProjectsURL;
     if(groupRequested == 0) {
         groupProjectsURL = keys.baseURL + '/api/v4/groups/' + groupName + '/projects?membership=true&starred=true&order_by=last_activity_at&access_token=' + token + '&per_page=100';

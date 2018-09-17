@@ -3,12 +3,15 @@ const express = require('express');
 const router = express.Router();
 const passport = require('passport');
 const request = require('request');
+const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 
-var getProjectsData = require('./requestData');
+// variables imports
+const jwtKey = require('../../config/keys').secretOrKey;
+const getProjectsData = require('./requestData');
+const User = require('../../models/User');
 
-let User;
-
-// @route   GET /users
+// @route   GET /
 // @desc    oauth gitlab
 // @access  public
 router.get('/', passport.authenticate('gitlab', {
@@ -24,27 +27,43 @@ router.get('/auth/gitlab/callback',
     session: false
   }),
   function(req, res) {
-    User = req.user;
-    res.redirect('/welcome');
-  });
+    const {gitlab_id, is_admin, access_token} = req.user;
+    const payload = {
+      gitlab_id,
+      is_admin,
+      access_token
+    }
+
+    jwt.sign(
+      payload,
+      jwtKey,
+      { expiresIn: 3600 },
+      (err, token) => {
+        const tokenObj = {
+          success: true,
+          token: 'Bearer ' + token
+        }
+        return res.status(200).json(tokenObj);
+      }
+    );
+ }
+);
 
 // @route   GET /welcome
-// @desc    on successful login
+// @desc    all projects list with lucid group
 // @access  private
-router.get('/welcome', (req, res) => {
-  console.log('User: ', User);
-  getProjectsData(0,User, function(gitlabResponseData, usersListResponseData){
+router.get('/welcome', passport.authenticate('jwt', {session: false}), (req, res) => {
+  getProjectsData(0,req.user, function(gitlabResponseData, usersListResponseData){
     res.json(gitlabResponseData);
   });
 });
 
 // @route   GET /users
-// @desc    all users list
+// @desc    all users list, for users with admin role
 // @access  private
-router.get('/users', (req, res) => {
-  console.log(User.is_admin);
-  if(User.is_admin) {
-    const usersListURL = 'https://gitlab.lucid.berlin/api/v4/users?access_token='+(User.accessToken);
+router.get('/users', passport.authenticate('jwt', {session: false}), (req, res) => {
+  if(req.user.is_admin) {
+    const usersListURL = 'https://gitlab.lucid.berlin/api/v4/users?access_token='+(req.user.access_token);
     request(usersListURL, function (err, response, body) {
       if(err) {
         res.status(400).json({err:'unknown error!'});
